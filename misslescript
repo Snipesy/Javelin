@@ -1,0 +1,140 @@
+active = 0
+mainFrame = 0
+minCruisingAltitudeSub = 200
+minCruisingAltitudeShip = 200
+baseJavelinDrop = 400
+
+maxSub = -10
+maxShip = 40
+
+
+function Update(I)
+-- put your code here 
+
+	-- Check that the mainframe probably exists
+	if (I:GetNumberOfMainframes() > mainFrame + 1) then
+		return
+	end
+
+	
+	-- MAIN MISSILE CONTROL LOOP
+	for t = 0, I:GetLuaTransceiverCount() do
+
+		for m = 0, I:GetLuaControlledMissileCount(t) do
+		
+		local Missile = I:GetLuaControlledMissileInfo(t, m);
+		
+			if Missile.Valid then
+				
+				if (I:GetNumberOfTargets(mainFrame) <= 0) then
+					return
+				end
+				
+				
+				-- GetTargetInfo(mainframeindex, targetindex)
+				nme = I:GetTargetInfo(mainFrame, 0);
+				-- TargetInfo object
+				-- Valid (bool)
+				-- Priority (int)
+				-- Score (float)
+				-- Team (int)
+				-- Protected (false for salvage)
+				-- Position (vector 3)
+				-- Velocity (vector 3)
+				-- PlayerTargetChoice (true if yes)
+				-- Id (int)
+				
+				
+				-- Target is in air (just follow)
+				if (nme.Position.y > maxShip) then
+					I:Log("A")
+					I:SetLuaControlledMissileAimPoint(t, m, nme.Position.x, nme.Position.y, nme.Position.z)
+				else if (nme.Position.y > maxSub) then
+					Javelin(I,t,m,nme, Missile)			
+				else
+					I:Log("C")
+					Spear(I,t,m,nme, Missile)
+				end
+			end
+
+
+		end
+
+	end
+
+end
+
+
+
+-- Anti Ship
+function Javelin(I,t,m,nme, Missile)
+
+
+	local line = Missile.Position - nme.Position;
+	local range2D = math.sqrt(math.pow(line.x,2) + math.pow(line.z,2))
+	I:Log(range2D)
+	if (range2D > baseJavelinDrop) then
+		Cruise(I,t,m,nme,Missile, minCruisingAltitudeShip)
+	else
+		Attack(I,t,m,nme,Missile)
+	end
+
+end
+
+-- Anti Submarine
+function Spear(I,t,m,nme, Missile)
+
+	
+	local line = Missile.Position - nme.Position;
+	local range2D = math.sqrt(math.pow(line.x,2) + math.pow(line.z,2))
+	if (range2D > baseJavelinDrop - nme.Position.y / 4) then
+		Cruise(I,t,m,nme, Missile,minCruisingAltitudeSub)
+	else
+		Attack(I,t,m,nme,Missile)
+	end
+	
+
+
+end
+
+-- Cruising
+function Cruise(I,t,m,nme, Missile, alt)
+
+	missileAlt = Missile.Position.y
+	lead = Lead(I,t,m,nme, Missile)
+	-- Steeper Aim point to help get to altitude
+	if (missileAlt < alt / 1.2 and missileAlt ~= 0) then
+		I:SetLuaControlledMissileAimPoint(t, m, lead.x, alt * alt / missileAlt, lead.z)
+	else
+		I:SetLuaControlledMissileAimPoint(t, m, lead.x, alt, lead.z)
+	end
+end
+
+
+function Attack(I,t,m,nme, Missile)
+	lead = Lead(I,t,m,nme, Missile)
+	I:SetLuaControlledMissileAimPoint(t, m, lead.x, lead.y, lead.z)
+	
+	
+end
+
+function Lead(I,t,m,nme, Missile)
+	-- distance to target
+	dist = Vector3.Distance(Missile.Position, nme.Position)
+	nmeV = nme.Velocity;
+	missileV = Missile.Velocity.magnitude
+	
+	p1 = nme.Position + ( ( nmeV*1.15) * (dist/missileV) )
+	d1 = Vector3.Distance(p1, Missile.Position)
+	p2 = nme.Position + ( ( nmeV*1.15) * (d1/missileV) )
+	d2 = Vector3.Distance(p2, Missile.Position)
+	
+	lead = nme.Position + ( ( nmeV*1.15) * (d2/missileV) )
+		
+	return lead
+		-- help
+
+	
+end
+
+end
