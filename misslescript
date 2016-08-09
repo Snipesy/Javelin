@@ -117,8 +117,12 @@ end
 function Lead(I,t,m,nme, Missile)
 	-- distance to target
 	dist = Vector3.Distance(Missile.Position, nme.Position)
-	nmeV = nme.Velocity;
-	missileV = Missile.Velocity.magnitude
+	nmeV = nme.Velocity.magnitude;
+	
+	if nmeV.magnitude < 3 then
+		return nme.Position
+	end
+	missileV = Missile.Velocity.
 	
 	p1 = nme.Position + ( ( nmeV*1.15) * (dist/missileV) )
 	d1 = Vector3.Distance(p1, Missile.Position)
