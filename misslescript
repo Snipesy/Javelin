@@ -1,5 +1,5 @@
 active = 0
-mainFrame = 0
+
 minCruisingAltitudeSub = 200
 minCruisingAltitudeShip = 200
 baseJavelinDrop = 400
@@ -11,57 +11,53 @@ maxShip = 40
 function Update(I)
 -- put your code here 
 
-	-- Check that the mainframe probably exists
-	if (I:GetNumberOfMainframes() > mainFrame + 1) then
-		return
-	end
 
-	
-	-- MAIN MISSILE CONTROL LOOP
-	for t = 0, I:GetLuaTransceiverCount() do
+	for mainFrame = 0, I:GetNumberOfMainframes() do
+		-- MAIN MISSILE CONTROL LOOP
+		for t = 0, I:GetLuaTransceiverCount() do
 
-		for m = 0, I:GetLuaControlledMissileCount(t) do
-		
-		local Missile = I:GetLuaControlledMissileInfo(t, m);
-		
-			if Missile.Valid then
-				
-				if (I:GetNumberOfTargets(mainFrame) <= 0) then
-					return
+			for m = 0, I:GetLuaControlledMissileCount(t) do
+			
+				local Missile = I:GetLuaControlledMissileInfo(t, m);
+			
+				if Missile.Valid then
+					
+					if (I:GetNumberOfTargets(mainFrame) <= 0) then
+						return
+					end
+					
+					
+					-- GetTargetInfo(mainframeindex, targetindex)
+					nme = I:GetTargetInfo(mainFrame, 0);
+					-- TargetInfo object
+					-- Valid (bool)
+					-- Priority (int)
+					-- Score (float)
+					-- Team (int)
+					-- Protected (false for salvage)
+					-- Position (vector 3)
+					-- Velocity (vector 3)
+					-- PlayerTargetChoice (true if yes)
+					-- Id (int)
+					
+					
+					-- Target is in air (just follow)
+					if (nme.Position.y > maxShip) then
+						lead = Lead(I,t,m,nme, Missile)
+						I:SetLuaControlledMissileAimPoint(t, m, lead.x, lead.y, lead.z)
+					else if (nme.Position.y > maxSub) then
+						Javelin(I,t,m,nme, Missile)			
+					else
+						I:Log("C")
+						Spear(I,t,m,nme, Missile)
+					end
 				end
-				
-				
-				-- GetTargetInfo(mainframeindex, targetindex)
-				nme = I:GetTargetInfo(mainFrame, 0);
-				-- TargetInfo object
-				-- Valid (bool)
-				-- Priority (int)
-				-- Score (float)
-				-- Team (int)
-				-- Protected (false for salvage)
-				-- Position (vector 3)
-				-- Velocity (vector 3)
-				-- PlayerTargetChoice (true if yes)
-				-- Id (int)
-				
-				
-				-- Target is in air (just follow)
-				if (nme.Position.y > maxShip) then
-					I:Log("A")
-					I:SetLuaControlledMissileAimPoint(t, m, nme.Position.x, nme.Position.y, nme.Position.z)
-				else if (nme.Position.y > maxSub) then
-					Javelin(I,t,m,nme, Missile)			
-				else
-					I:Log("C")
-					Spear(I,t,m,nme, Missile)
-				end
+
+
 			end
 
-
 		end
-
 	end
-
 end
 
 
